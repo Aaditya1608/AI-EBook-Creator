@@ -1,8 +1,13 @@
-require('dotenv').config();
-const app = require('./src/app.js');
+import app from './src/app.js';
+import dotenv from 'dotenv';
+import { initDB } from './src/initDB.js';
 
-const PORT = process.env.PORT || 8000;
+dotenv.config();
 
-app.listen(PORT,()=>{
-    console.log(`Backend running on Port ${PORT}`)
-})
+const PORT = process.env.PORT || 3000;
+
+await initDB();
+
+app.listen(PORT, () => {
+  console.log(`Backend running on Port ${PORT}`);
+});
