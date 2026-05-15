@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import validator from 'validator';
 import { query } from '../config/db.js'
 async function createBook(req,res){
     try{
@@ -40,5 +41,38 @@ async function getBooks(req,res){
         })
     }
 }
+async function updateEbook(req,res){
+    try{
+        const {title} = req.body;
+        const bookId = req.params.id;
+        if(!validator.isUUID(bookId)){
+            return res.status(400).json({
+                message: "Invalid UUID"
+            })
+        }
+        const book = await query(
+            `select * from ebooks where book_id=$1`,
+            [bookId]
+        );
 
-export default {createBook,getBooks};
+        if(book.rows.length===0){
+            return res.status(404).json({
+                message: "Book not found"
+            })
+        }
+        const result = await query(
+            `UPDATE ebooks set book_title=$1 where book_id=$2 RETURNING *`,
+            [title,bookId]
+        );
+        return res.status(200).json({
+            message:"Updated title of the ebook",
+            book: result.rows[0]
+        })
+        
+    } catch(err){
+        return res.status(500).json({
+            message: "Server Error: "+err.message
+        })
+    }
+}
+export default {createBook,getBooks,updateEbook};
