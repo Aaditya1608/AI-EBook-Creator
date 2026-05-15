@@ -26,4 +26,19 @@ async function createBook(req,res){
     }
 }
 
-export default {createBook};
+async function getBooks(req,res){
+    try{
+        const result = await query(
+            `SELECT * FROM ebooks`);
+        return res.status(200).json({
+            message: "Fetched all the EBooks! ",
+            books: result.rows
+        })
+    } catch(err){
+        return res.status(500).json({
+            message: "Server Error: "+err.message
+        })
+    }
+}
+
+export default {createBook,getBooks};
