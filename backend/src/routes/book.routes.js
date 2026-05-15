@@ -4,4 +4,5 @@ import authMiddleware from '../middlewares/auth.middleware.js';
 const router = express.Router();
 
 router.post("/create",authMiddleware,bookController.createBook);
+router.get("/",authMiddleware,bookController.getBooks);
 export default router;
