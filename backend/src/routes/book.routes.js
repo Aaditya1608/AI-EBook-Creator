@@ -5,5 +5,6 @@ const router = express.Router();
 
 router.post("/create",authMiddleware,bookController.createBook);
 router.get("/",authMiddleware,bookController.getBooks);
-router.patch("/:id",authMiddleware,bookController.updateEbook)
+router.patch("/:id",authMiddleware,bookController.updateEbook);
+router.delete("/:id",authMiddleware,bookController.deleteEbook);
 export default router;
