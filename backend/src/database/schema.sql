@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS ebooks(
 CREATE TABLE IF NOT EXISTS chapters(
     chapter_id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     chapter_title varchar(200) not null,
+    chapter_number int,
     chapter_content text,
     book_id uuid NOT NULL REFERENCES ebooks(book_id) on DELETE CASCADE,
     created_at timestamp DEFAULT CURRENT_TIMESTAMP,
