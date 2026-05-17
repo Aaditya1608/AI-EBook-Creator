@@ -13,7 +13,9 @@ CREATE TABLE IF NOT EXISTS ebooks(
     book_id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     book_title varchar(255) not null,
     cover_image_url varchar(500),
+    description text,
     user_id uuid NOT NULL REFERENCES users(user_id) on DELETE CASCADE,
+    cover_image_key varchar(100),
     created_at timestamp DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP
 );
