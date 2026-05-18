@@ -1,43 +1,40 @@
-import {
-    generateOutline,
-    generateChapter
-} from '../services/gemini.services.js';
-
+import { generateOutline, generateChapter } from '../services/gemini.services.js';
 import { query } from '../../config/db.js';
 
-async function generateOutlineController(req,res){
-
-    try{
+async function generateOutlineController(req, res) {
+    try {
         const ebookId = req.params.id;
-        const userId = req.user.id;
-
+        const userId = req.user?.id; // Assuming auth middleware provides this
+        
         const { chapters } = req.body;
 
-        if(!chapters){
-            return res.status(400).json({
-                message: "Number of chapters required"
-            });
+        if (!chapters) {
+            return res.status(400).json({ message: "Number of chapters required" });
         }
 
-        const ebookResult = await query(
-            `SELECT * from ebooks
-            Where book_id=$1 and user_id=$2`,
-            [ebookId,userId]
-        );
+        // Verify ebook exists and user owns it
+        let queryParams = [ebookId];
+        let queryString = `SELECT * FROM ebooks WHERE book_id=$1`;
+        
+        if (userId) {
+            queryString += ` AND user_id=$2`;
+            queryParams.push(userId);
+        }
+
+        const ebookResult = await query(queryString, queryParams);
         const ebook = ebookResult.rows[0];
-        if(!ebook){
-            return res.status(404).json({
-                message: "Ebook not found"
-            })
+
+        if (!ebook) {
+            return res.status(404).json({ message: "Ebook not found or unauthorized" });
         }
 
-        const outline = await generateOutline(
-            ebook.book_title,
-            chapters
-        );
+        // Generate outline
+        const outline = await generateOutline(ebook.book_title, chapters);
 
-        for(const chapter of outline){
-            await query(
+        // Insert chapters into DB
+        const insertedChapters = [];
+        for (const [index, chapter] of outline.entries()) {
+            const insertResult = await query(
                 `
                 INSERT INTO chapters
                 (
@@ -45,61 +42,56 @@ async function generateOutlineController(req,res){
                     chapter_title,
                     chapter_number
                 )
-                VALUES ($1,$2,$3)
+                VALUES ($1, $2, $3)
+                RETURNING *
                 `,
                 [
                     ebookId,
-                    chapter.chapter_title,
-                    chapter.chapter_number
+                    chapter.chapter_title || chapter.title,
+                    chapter.chapter_number || chapter.number || index + 1
                 ]
             );
+            insertedChapters.push(insertResult.rows[0]);
         }
+
         return res.status(200).json({
             message: "Outline generated successfully",
-            outline
+            outline: insertedChapters
         });
-    } catch(err){
-
-        return res.status(500).json({
-            message: err.message
-        });
-
+    } catch (err) {
+        console.error("Generate Outline Error:", err);
+        return res.status(500).json({ message: err.message });
     }
 }
 
-async function generateChapterController(req,res){
-
-    try{
-
+async function generateChapterController(req, res) {
+    try {
         const chapterId = req.params.id;
-        const userId = req.user.id;
+        const userId = req.user?.id; // Assuming auth middleware
 
-        // Get chapter + ebook ownership
-        const chapterResult = await query(
-            `
+        // Get chapter + ebook details to ensure ownership and fetch titles
+        let queryString = `
             SELECT chapters.*, ebooks.book_title
             FROM chapters
-            JOIN ebooks
-            ON chapters.book_id = ebooks.book_id
+            JOIN ebooks ON chapters.book_id = ebooks.book_id
             WHERE chapters.chapter_id=$1
-            AND ebooks.user_id=$2
-            `,
-            [chapterId,userId]
-        );
+        `;
+        let queryParams = [chapterId];
+        
+        if (userId) {
+            queryString += ` AND ebooks.user_id=$2`;
+            queryParams.push(userId);
+        }
 
+        const chapterResult = await query(queryString, queryParams);
         const chapter = chapterResult.rows[0];
 
-        if(!chapter){
-            return res.status(404).json({
-                message: "Chapter not found"
-            });
+        if (!chapter) {
+            return res.status(404).json({ message: "Chapter not found or unauthorized" });
         }
 
         // Generate content
-        const content = await generateChapter(
-            chapter.book_title,
-            chapter.chapter_title
-        );
+        const content = await generateChapter(chapter.book_title, chapter.chapter_title);
 
         // Save generated content
         const updatedChapter = await query(
@@ -109,20 +101,17 @@ async function generateChapterController(req,res){
             WHERE chapter_id=$2
             RETURNING *
             `,
-            [content,chapterId]
+            [content, chapterId]
         );
 
         return res.status(200).json({
             message: "Chapter generated successfully",
             chapter: updatedChapter.rows[0]
         });
-    } catch(err){
-
-        return res.status(500).json({
-            message: err.message
-        });
-
+    } catch (err) {
+        console.error("Generate Chapter Error:", err);
+        return res.status(500).json({ message: err.message });
     }
 }
 
-export default {generateChapterController,generateOutlineController};
+export default { generateOutlineController, generateChapterController };
