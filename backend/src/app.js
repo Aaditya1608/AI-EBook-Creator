@@ -10,9 +10,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());
-app.use("/api/auth",authRoutes);
-app.use("/api/ebook",bookRoutes);
-app.use("/api/ai",aiRoutes)
+app.use("/api/auth", authRoutes);
+app.use("/api/ebook", bookRoutes);
+app.use("/api/ai", aiRoutes);
 app.get('/test-db', async (req, res) => {
   try {
     const result = await query('SELECT NOW()');
